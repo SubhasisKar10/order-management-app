@@ -6,11 +6,15 @@ import '../services/api_service.dart';
 class DocumentsScreen extends StatefulWidget {
   final String userId;
   final String purchaseOrder;
+  final String materialReq;
+  final String workOrder;
 
   const DocumentsScreen({
     super.key,
     required this.userId,
     required this.purchaseOrder,
+    required this.materialReq,
+    required this.workOrder,
   });
 
   @override
@@ -22,7 +26,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   bool isLoading = true;
   String? errorMessage;
-  List<dynamic> documents = [];
+
+  Map<String, dynamic>? purchaseOrderFile;
+  Map<String, dynamic>? materialReqFile;
+  Map<String, dynamic>? returnIntimationFile;
 
   @override
   void initState() {
@@ -32,16 +39,26 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   Future<void> loadDocuments() async {
     try {
-      final result = await apiService.getDocuments(
+      final result = await apiService.getOrderDocuments(
         userId: widget.userId,
         purchaseOrder: widget.purchaseOrder,
+        materialReq: widget.materialReq,
+        workOrder: widget.workOrder,
       );
 
       if (!mounted) return;
 
       if (result['success'] == true) {
         setState(() {
-          documents = result['documents'] ?? [];
+          purchaseOrderFile =
+              result['purchaseOrder'] as Map<String, dynamic>?;
+
+          materialReqFile =
+              result['materialReq'] as Map<String, dynamic>?;
+
+          returnIntimationFile =
+              result['returnIntimation'] as Map<String, dynamic>?;
+
           isLoading = false;
         });
       } else {
@@ -65,8 +82,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Documents - ${widget.purchaseOrder}',
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "PO: ${widget.purchaseOrder}",
+              style: const TextStyle(fontSize: 18),
+            ),
+            Text(
+              "WO: ${widget.workOrder}",
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
       body: _buildBody(),
@@ -95,78 +125,197 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       );
     }
 
-    if (documents.isEmpty) {
-      return const Center(
-        child: Text(
-          'No documents found',
-          style: TextStyle(fontSize: 18),
-        ),
-      );
-    }
+    return RefreshIndicator(
+      onRefresh: loadDocuments,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildDocumentCard(
+            title: "Purchase Order",
+            subtitle: widget.purchaseOrder,
+            icon: Icons.shopping_cart,
+            document: purchaseOrderFile,
+          ),
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: documents.length,
-      itemBuilder: (context, index) {
-        final document =
-            documents[index] as Map<String, dynamic>;
+          const SizedBox(height: 14),
 
-        return _buildDocumentCard(document);
-      },
+          _buildDocumentCard(
+            title: "Material Requisition",
+            subtitle: widget.materialReq,
+            icon: Icons.assignment,
+            document: materialReqFile,
+          ),
+
+          const SizedBox(height: 14),
+
+          _buildDocumentCard(
+            title: "Return Intimation",
+            subtitle: widget.workOrder,
+            icon: Icons.assignment_return,
+            document: returnIntimationFile,
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDocumentCard(
-    Map<String, dynamic> document,
-  ) {
-    final fileId =
-        document['GoogleDriveFileID']?.toString() ?? '';
+  Widget _buildDocumentCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Map<String, dynamic>? document,
+  }) {
+    final found = document?['found'] == true;
 
     final fileName =
-        document['FileName']?.toString() ?? 'Document';
+        document?['name']?.toString() ?? '';
 
-    final documentType =
-        document['DocumentType']?.toString() ?? '';
+    final url =
+        document?['url']?.toString() ?? '';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const Icon(
-          Icons.picture_as_pdf,
-          size: 40,
-        ),
-        title: Text(fileName),
-        subtitle: Text(documentType),
-        trailing: const Icon(
-          Icons.open_in_new,
-        ),
-        onTap: () async {
-          if (fileId.isEmpty) {
-            return;
-          }
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  child: Icon(icon),
+                ),
 
-          final url = Uri.parse(
-            'https://drive.google.com/file/d/$fileId/view',
-          );
+                const SizedBox(width: 14),
 
-          if (await canLaunchUrl(url)) {
-            await launchUrl(
-              url,
-              mode: LaunchMode.externalApplication,
-            );
-          } else {
-            if (!mounted) return;
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Unable to open document',
+                      const SizedBox(height: 4),
+
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            if (found)
+              Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text("VIEW PDF"),
+                      onPressed: () {
+                        _openDocument(url);
+                      },
+                    ),
+                  ),
+                ],
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Not Uploaded Yet",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }
-        },
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _openDocument(String url) async {
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Document URL not available"),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(url);
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Unable to open document"),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Unable to open document"),
+        ),
+      );
+    }
   }
 }

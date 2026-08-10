@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'package:flutter/services.dart';
+import 'edit_user_screen.dart';
 
 class UsersScreen extends StatefulWidget {
   final String userId;
@@ -18,13 +20,21 @@ class _UsersScreenState extends State<UsersScreen> {
 
   bool isLoading = true;
   String? errorMessage;
-  List<dynamic> users = [];
+
+final TextEditingController searchController =
+    TextEditingController();
+
+List<dynamic> users = [];
+List<dynamic> filteredUsers = [];
 
   @override
-  void initState() {
-    super.initState();
-    loadUsers();
-  }
+void initState() {
+  super.initState();
+
+  print("===== USERS SCREEN OPENED =====");
+
+  loadUsers();
+}
 
   Future<void> loadUsers() async {
     try {
@@ -37,6 +47,7 @@ class _UsersScreenState extends State<UsersScreen> {
       if (result['success'] == true) {
         setState(() {
           users = result['users'] ?? [];
+filteredUsers = List.from(users);
           isLoading = false;
         });
       } else {
@@ -55,13 +66,67 @@ class _UsersScreenState extends State<UsersScreen> {
       });
     }
   }
+void filterUsers(String value) {
 
+  setState(() {
+
+    if (value.trim().isEmpty) {
+
+      filteredUsers = List.from(users);
+
+      return;
+
+    }
+
+    final query = value.toLowerCase();
+
+    filteredUsers = users.where((user) {
+final userId =
+    user["UserID"].toString().toLowerCase();
+
+final name =
+    user["Name"].toString().toLowerCase();
+
+final vendor =
+    user["Vendor"].toString().toLowerCase();
+
+final email =
+    user["E-mail"].toString().toLowerCase();
+
+return userId.contains(query) ||
+       name.contains(query) ||
+       vendor.contains(query) ||
+       email.contains(query);
+
+    }).toList();
+
+  });
+
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Users'),
+     appBar: AppBar(
+  title: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+
+      const Text(
+        "Users",
+        style: TextStyle(fontSize: 18),
       ),
+
+      Text(
+        "${filteredUsers.length} Registered",
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+        ),
+      ),
+
+    ],
+  ),
+),
       body: _buildBody(),
     );
   }
@@ -94,44 +159,178 @@ class _UsersScreenState extends State<UsersScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        final user =
-            users[index] as Map<String, dynamic>;
+   return Column(
 
-        return _buildUserCard(user);
-      },
-    );
+  children: [
+
+    Padding(
+      padding: const EdgeInsets.all(12),
+      child: TextField(
+        controller: searchController,
+        onChanged: filterUsers,
+        decoration: InputDecoration(
+          hintText: "Search User ID / Name / Vendor / Email",
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius:
+                BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    ),
+
+    Expanded(
+      child: RefreshIndicator(
+        onRefresh: loadUsers,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: filteredUsers.length,
+          itemBuilder: (context, index) {
+
+            final user =
+                filteredUsers[index]
+                    as Map<String, dynamic>;
+
+            return _buildUserCard(user);
+
+          },
+        ),
+      ),
+    ),
+
+  ],
+
+);
   }
 
   Widget _buildUserCard(
-    Map<String, dynamic> user,
-  ) {
-    final userId =
-        user['UserID']?.toString() ?? '';
+  Map<String, dynamic> user,
+) {
 
-    final role =
-        user['Role']?.toString() ?? '';
+  final userId =
+      user["UserID"]?.toString() ?? "";
 
-    final active =
-        user['Active']?.toString() ?? '';
+  final vendor =
+      user["Vendor"]?.toString() ?? "";
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(
-          role == 'Admin'
+  final role =
+      user["Role"]?.toString() ?? "";
+
+  final active =
+      user["Active"]?.toString() ?? "";
+
+  final email =
+      user["E-mail"]?.toString() ?? "";
+
+  return Card(
+
+    margin: const EdgeInsets.only(bottom: 12),
+
+    child: ListTile(
+
+      leading: CircleAvatar(
+        child: Icon(
+          role == "Admin"
               ? Icons.admin_panel_settings
               : Icons.person,
         ),
-        title: Text(userId),
-        subtitle: Text('Role: $role'),
-        trailing: Chip(
-          label: Text(active),
+      ),
+
+      title: Text(
+        userId,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
         ),
       ),
-    );
+
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+
+            Text("Vendor : $vendor"),
+            Text("Role : $role"),
+            Text(email),
+
+            const SizedBox(height: 6),
+
+            Chip(
+              backgroundColor:
+                  active == "YES"
+                      ? Colors.green.shade100
+                      : Colors.red.shade100,
+
+              label: Text(
+                active,
+                style: TextStyle(
+                  color:
+                      active == "YES"
+                          ? Colors.green
+                          : Colors.red,
+                ),
+              ),
+            ),
+
+          ],
+        ),
+      ),
+
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 18,
+      ),
+
+     onTap: () async {
+
+  final updated = await Navigator.push(
+
+    context,
+
+    MaterialPageRoute(
+
+      builder: (_) => EditUserScreen(
+
+        user: user,
+
+        adminUserId: widget.userId,
+
+      ),
+
+    ),
+
+  );
+
+  if (updated == true) {
+
+    loadUsers();
+
   }
+
+},
+
+      onLongPress: () async {
+
+        await Clipboard.setData(
+          ClipboardData(text: userId),
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context)
+            .showSnackBar(
+          const SnackBar(
+            content: Text("User ID copied"),
+            duration: Duration(seconds: 1),
+          ),
+        );
+
+      },
+
+    ),
+
+  );
+
+}
 }

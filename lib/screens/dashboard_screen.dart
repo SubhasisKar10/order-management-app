@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'order_screen.dart';
+import 'support_screen.dart';
+import 'notifications_screen.dart';
+import 'login_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final String userId;
@@ -17,16 +20,74 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Order Management'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
-        ],
+  title: const Text(
+    'Order Management',
+  ),
+  actions: [
+
+    IconButton(
+      icon: const Icon(
+        Icons.notifications,
       ),
+      tooltip: 'Notifications',
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                NotificationsScreen(
+              userId: userId,
+            ),
+          ),
+        );
+      },
+    ),
+
+    IconButton(
+      icon: const Icon(
+        Icons.logout,
+      ),
+      tooltip: 'Logout',
+     onPressed: () async {
+  final shouldLogout = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Logout"),
+      content: const Text(
+        "Are you sure you want to logout?",
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context, false);
+          },
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context, true);
+          },
+          child: const Text("Logout"),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldLogout != true || !context.mounted) {
+    return;
+  }
+
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+      builder: (_) => const LoginScreen(),
+    ),
+    (route) => false,
+  );
+},
+    ),
+  ],
+),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -96,12 +157,29 @@ class DashboardScreen extends StatelessWidget {
                     },
                   ),
                 ),
-              ],
-            ),
-          ],
+                       ],
         ),
-      ),
-    );
+
+        const SizedBox(height: 12),
+
+        _dashboardCard(
+          icon: Icons.support_agent,
+          title: 'Support & Help',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SupportScreen(
+                  userId: userId,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+);
   }
 
   Widget _dashboardCard({

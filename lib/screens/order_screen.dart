@@ -87,14 +87,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
       bool statusMatch = true;
 
-      if (widget.orderType == "E_OFFICE" &&
-          selectedStatus != "All") {
-        statusMatch =
-            (item["STATUS"] ?? "")
-                    .toString()
-                    .toLowerCase() ==
-                selectedStatus.toLowerCase();
-      }
+     if (widget.orderType == "E_OFFICE" &&
+    selectedStatus != "All") {
+
+  final po =
+      (item["PO"] ?? "")
+          .toString()
+          .trim();
+
+  final isCompleted = po.isNotEmpty;
+
+  if (selectedStatus == "Completed") {
+    statusMatch = isCompleted;
+  }
+
+  if (selectedStatus == "Pending") {
+    statusMatch = !isCompleted;
+  }
+}
 
       return searchMatch && statusMatch;
     }).toList();
@@ -117,19 +127,37 @@ class _OrdersScreenState extends State<OrdersScreen> {
       if (result["success"] == true) {
         orders = List.from(result["orders"] ?? []);
 
-        final poColumn = widget.orderType == "E_OFFICE"
-            ? "PO"
-            : "PURCHASE ORDER";
+       if (widget.orderType == "E_OFFICE") {
+  orders.sort((a, b) {
+    final eOfficeA =
+        int.tryParse(
+          a["E-NOTE"]?.toString() ?? "",
+        ) ?? 0;
 
-        orders.sort((a, b) {
-          final poA =
-              int.tryParse(a[poColumn].toString()) ?? 0;
+    final eOfficeB =
+        int.tryParse(
+          b["E-NOTE"]?.toString() ?? "",
+        ) ?? 0;
 
-          final poB =
-              int.tryParse(b[poColumn].toString()) ?? 0;
+    return eOfficeB.compareTo(eOfficeA);
+  });
+}else {
 
-          return poB.compareTo(poA);
-        });
+  orders.sort((a, b) {
+
+    final poA =
+        int.tryParse(
+          a["PURCHASE ORDER"]?.toString() ?? "",
+        ) ?? 0;
+
+    final poB =
+        int.tryParse(
+          b["PURCHASE ORDER"]?.toString() ?? "",
+        ) ?? 0;
+
+    return poB.compareTo(poA);
+  });
+}
 
         filteredOrders = List.from(orders);
 
@@ -151,7 +179,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
         isLoading = false;
       });
     }
+
   }
+Map<String, List<Map<String, dynamic>>> groupOrdersByPO() {
+
+  final Map<String, List<Map<String, dynamic>>> grouped = {};
+
+  for (final item in filteredOrders) {
+
+    final order =
+        item as Map<String, dynamic>;
+
+    final po =
+        (order["PURCHASE ORDER"] ?? "")
+            .toString();
+
+    grouped.putIfAbsent(po, () => []);
+
+    grouped[po]!.add(order);
+  }
+
+  return grouped;
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,6 +211,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               : "DTR PO Orders",
         ),
       ),
+
       body: _buildBody(),
     );
   }
@@ -285,26 +335,54 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
 
         const SizedBox(height: 8),
+Expanded(
+  child: RefreshIndicator(
+    onRefresh: loadOrders,
+    child: Builder(
+      builder: (context) {
 
-       Expanded(
- 	 child: RefreshIndicator(
-    	    onRefresh: loadOrders,
-      	        child: ListView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-            ),
-            itemCount: filteredOrders.length,
-            itemBuilder: (context, index) {
-              final order =
-                  filteredOrders[index]
-                      as Map<String, dynamic>;
+       if (widget.orderType == "E_OFFICE") {
+  return ListView.builder(
+    padding: const EdgeInsets.all(12),
+    itemCount: filteredOrders.length,
+    itemBuilder: (context, index) {
+      final order =
+          filteredOrders[index]
+              as Map<String, dynamic>;
 
-              return _buildOrderCard(
-                order: order,
-                orderNumber: index + 1,
-              );
-            },
-          ),
+      return _buildEOfficeCard(
+        order: order,
+        orderNumber: index + 1,
+      );
+    },
+  );
+}else {
+
+  final groupedOrders =
+      groupOrdersByPO();
+
+  return ListView.builder(
+    padding: const EdgeInsets.all(12),
+    itemCount: groupedOrders.length,
+    itemBuilder: (context, index) {
+
+      final po =
+          groupedOrders.keys
+              .elementAt(index);
+
+      final workOrders =
+          groupedOrders[po]!;
+
+      return _buildPurchaseOrderCard(
+        po: po,
+        workOrders: workOrders,
+      );
+    },
+  );
+}
+}
+    ),
+
          ),
         ),
 
@@ -312,202 +390,289 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-    Widget _buildOrderCard({
-    required Map<String, dynamic> order,
-    required int orderNumber,
-  }) {
-    final purchaseOrder = widget.orderType == "E_OFFICE"
-        ? (order["PO"]?.toString() ?? "")
-        : (order["PURCHASE ORDER"]?.toString() ?? "");
+  Widget _buildOrderCard({
+  required Map<String, dynamic> order,
+  required int orderNumber,
+}) {
+  final purchaseOrder =
+      widget.orderType == "E_OFFICE"
+          ? (order["PO"]?.toString().trim() ?? "")
+          : (order["PURCHASE ORDER"]?.toString().trim() ?? "");
 
-    return Card(
-      margin: const EdgeInsets.only(
-        left: 12,
-        right: 12,
-        bottom: 14,
-      ),
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: purchaseOrder.isEmpty
-            ? null
-            : () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DocumentsScreen(
-                      userId: widget.userId,
-                      purchaseOrder: purchaseOrder,
-                    ),
+  final isEOffice =
+      widget.orderType == "E_OFFICE";
+
+  final isCompleted =
+      isEOffice
+          ? purchaseOrder.isNotEmpty
+          : purchaseOrder.isNotEmpty;
+
+  final statusText =
+      isEOffice
+          ? (isCompleted ? "Completed" : "Pending")
+          : "";
+
+  final statusColor =
+      isCompleted
+          ? Colors.red
+          : Colors.green;
+
+  return Card(
+    margin: const EdgeInsets.only(
+      left: 12,
+      right: 12,
+      bottom: 14,
+    ),
+    elevation: 3,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: purchaseOrder.isEmpty
+          ? null
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DocumentsScreen(
+                    userId: widget.userId,
+                    purchaseOrder: purchaseOrder,
+                    materialReq:
+                        order["MAT REQ."]
+                            .toString(),
+                    workOrder:
+                        order["WORK ORDER"]
+                            .toString(),
                   ),
-                );
-              },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
+                ),
+              );
+            },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
 
+            // =========================
+            // E-OFFICE HEADER
+            // =========================
+
+            if (isEOffice)
               Row(
                 children: [
 
-                  Text(
-                    "Order #$orderNumber",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      "E-Office No. ${order["E-NOTE"] ?? ""}",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
                     ),
                   ),
 
-                  const Spacer(),
-
-                  if (widget.orderType == "E_OFFICE")
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            (order["STATUS"]
-                                            ?.toString()
-                                            .toLowerCase() ==
-                                        "completed")
-                                ? Colors.green
-                                : Colors.orange,
-                        borderRadius:
-                            BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        order["STATUS"]
-                                ?.toString() ??
-                            "",
-                        style:
-                            const TextStyle(
-                          color: Colors.white,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      color: statusColor,
+                      borderRadius:
+                          BorderRadius.circular(
+                        20,
                       ),
                     ),
-
+                    child: Text(
+                      statusText,
+                      style:
+                          const TextStyle(
+                        color: Colors.white,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
+              )
+
+            // =========================
+            // DTR PO HEADER
+            // =========================
+            else
+              Text(
+                "Order #$orderNumber",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight:
+                      FontWeight.bold,
+                ),
               ),
 
-              const Divider(height: 22),
+            const Divider(
+              height: 22,
+            ),
 
-              if (widget.orderType ==
-                  "E_OFFICE") ...[
+            // =========================
+            // E-OFFICE DETAILS
+            // =========================
 
-                _orderField(
-                  "Date",
-                  formatDate(order["DATE"]),
-                ),
+            if (isEOffice) ...[
 
-                _orderField(
-                  "E-Note",
-                  order["E-NOTE"],
-                ),
+              _orderField(
+                "Date",
+                formatDate(order["DATE"]),
+              ),
 
-                _orderField(
-                  "Project ID",
-                  order["PROJECT ID"],
-                ),
+              _orderField(
+                "E-Office No.",
+                order["E-NOTE"],
+              ),
 
-                _orderField(
-                  "Work Order",
-                  order["WORK ORDER"],
-                ),
+              _orderField(
+                "Project ID",
+                order["PROJECT ID"],
+              ),
 
-                _orderField(
-                  "PO",
-                  order["PO"],
-                ),
+              _orderField(
+                "Work Order",
+                order["WORK ORDER"],
+              ),
 
-                _orderField(
-                  "Work",
-                  order["WORK"],
-                ),
+              _orderField(
+                "PO",
+                order["PO"],
+              ),
 
-                _orderField(
-                  "Vendor",
-                  order["VENDOR"],
-                ),
+              _orderField(
+                "Work",
+                order["WORK"],
+              ),
 
-              ] else ...[
+              _orderField(
+                "Vendor",
+                order["VENDOR"],
+              ),
 
-                _orderField(
-                  "Purchase Order",
-                  order["PURCHASE ORDER"],
-                ),
+            ]
 
-                _orderField(
-                  "Work Order",
-                  order["WORK ORDER"],
-                ),
+            // =========================
+            // DTR PO DETAILS
+            // =========================
 
-                _orderField(
-                  "Purchase Requisition",
-                  order["PUR REQ"],
-                ),
+            else ...[
 
-                _orderField(
-                  "DTR Serial No",
-                  order["DTR SERIAL NO"],
-                ),
+              _orderField(
+                "Purchase Order",
+                order["PURCHASE ORDER"],
+              ),
 
-                _orderField(
-                  "DTR Code",
-                  order["DTR CODE"],
-                ),
+              _orderField(
+                "Work Order",
+                order["WORK ORDER"],
+              ),
 
-                _orderField(
-                  "Vendor",
-                  order["VENDOR"],
-                ),
+              _orderField(
+                "Purchase Requisition",
+                order["PUR REQ"],
+              ),
 
-                _orderField(
-                  "Material Requisition",
-                  order["MAT REQ."],
-                ),
+              _orderField(
+                "DTR Serial No",
+                order["DTR SERIAL NO"],
+              ),
 
-                _orderField(
-                  "Return Reservation",
-                  order["RETURN RESERVATION"],
-                ),
+              _orderField(
+                "DTR Code",
+                order["DTR CODE"],
+              ),
 
-              ],
+              _orderField(
+                "Vendor",
+                order["VENDOR"],
+              ),
 
-              const SizedBox(height: 10),
+              _orderField(
+                "Material Requisition",
+                order["MAT REQ."],
+              ),
 
-              if (purchaseOrder.isNotEmpty)
-                const Align(
-                  alignment:
-                      Alignment.centerRight,
-                  child: Text(
-                    "Tap to view documents →",
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontStyle:
-                          FontStyle.italic,
-                      fontWeight:
-                          FontWeight.w500,
-                    ),
+              _orderField(
+                "Return Reservation",
+                order["RETURN RESERVATION"],
+              ),
+            ],
+
+            const SizedBox(
+              height: 10,
+            ),
+
+            if (purchaseOrder.isNotEmpty)
+              const Align(
+                alignment:
+                    Alignment.centerRight,
+                child: Text(
+                  "Tap to view documents →",
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontStyle:
+                        FontStyle.italic,
+                    fontWeight:
+                        FontWeight.w500,
                   ),
                 ),
-
-            ],
-          ),
+              ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+Widget _buildPurchaseOrderCard({
+  required String po,
+  required List<Map<String, dynamic>> workOrders,
+}) {
 
+  final first = workOrders.first;
+
+  return Card(
+    margin: const EdgeInsets.only(bottom: 14),
+
+    child: ExpansionTile(
+
+      leading: const Icon(
+        Icons.inventory_2,
+        color: Colors.blue,
+      ),
+
+      title: Text(
+        po,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+
+      subtitle: Text(
+  first["VENDOR"]?.toString() ?? "",
+),
+
+      children: workOrders.map((order) {
+
+       return _buildOrderCard(
+  order: order,
+  orderNumber: workOrders.indexOf(order) + 1,
+);
+
+      }).toList(),
+
+    ),
+  );
+}
     Widget _orderField(
     String label,
     dynamic value,
@@ -549,4 +714,57 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
     );
   }
+Widget _buildEOfficeCard({
+  required Map<String, dynamic> order,
+  required int orderNumber,
+}) {
+  final eNote =
+      order["E-NOTE"]?.toString().trim() ?? "";
+
+  final work =
+      order["WORK"]?.toString().trim() ?? "";
+
+  final po =
+      order["PO"]?.toString().trim() ?? "";
+
+  final isCompleted = po.isNotEmpty;
+
+  return Card(
+    margin: const EdgeInsets.only(
+      bottom: 14,
+    ),
+    child: ExpansionTile(
+      leading: Icon(
+        Icons.description,
+        color: isCompleted
+            ? Colors.red
+            : Colors.green,
+      ),
+
+      title: Text(
+        eNote.isEmpty
+            ? "E-Office"
+            : eNote,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+
+      subtitle: Text(
+        work.isEmpty
+            ? "No work description"
+            : work,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+
+      children: [
+        _buildOrderCard(
+          order: order,
+          orderNumber: orderNumber,
+        ),
+      ],
+    ),
+  );
+}
 }

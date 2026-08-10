@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-class VendorsScreen extends StatefulWidget {
+
+class VendorListScreen extends StatefulWidget {
   final String userId;
 
-  const VendorsScreen({
+  const VendorListScreen({
     super.key,
     required this.userId,
   });
 
   @override
-  State<VendorsScreen> createState() => _VendorsScreenState();
+ State<VendorListScreen> createState() => _VendorListScreenState();
 }
 
-class _VendorsScreenState extends State<VendorsScreen> {
+class _VendorListScreenState extends State<VendorListScreen> {
   final ApiService apiService = ApiService();
 
   bool isLoading = true;
@@ -60,51 +61,49 @@ class _VendorsScreenState extends State<VendorsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vendors'),
+      title: const Text('Vendor List'),
       ),
       body: _buildBody(),
     );
   }
 
-  Widget _buildBody() {
-    if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text(
-            errorMessage!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.red,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (vendors.isEmpty) {
-      return const Center(
-        child: Text('No vendor mappings found'),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: vendors.length,
-      itemBuilder: (context, index) {
-        final vendor =
-            vendors[index] as Map<String, dynamic>;
-
-        return _buildVendorCard(vendor);
-      },
+ Widget _buildBody() {
+  if (isLoading) {
+    return const Center(
+      child: CircularProgressIndicator(),
     );
   }
+
+  if (errorMessage != null) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          errorMessage!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.red),
+        ),
+      ),
+    );
+  }
+
+  if (vendors.isEmpty) {
+    return const Center(
+      child: Text("No vendors found"),
+    );
+  }
+
+  return ListView.builder(
+    padding: const EdgeInsets.all(12),
+    itemCount: vendors.length,
+    itemBuilder: (context, index) {
+      final vendor =
+          vendors[index] as Map<String, dynamic>;
+
+      return _buildVendorCard(vendor);
+    },
+  );
+}
 
   Widget _buildVendorCard(
     Map<String, dynamic> vendor,
@@ -112,8 +111,14 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final userId =
         vendor['UserID']?.toString() ?? '';
 
-    final vendorName =
-        vendor['Vendor']?.toString() ?? '';
+   final vendorCode =
+    vendor["VendorCode"]?.toString() ?? "";
+
+final vendorName =
+    vendor["VendorName"]?.toString() ?? "";
+
+final vendorCodeShort =
+    vendor["Vendor"]?.toString() ?? "";
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -123,7 +128,13 @@ class _VendorsScreenState extends State<VendorsScreen> {
           size: 40,
         ),
         title: Text(vendorName),
-        subtitle: Text('User ID: $userId'),
+        subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text('Vendor Code: $vendorCode'),
+    Text('Vendor: $vendorCodeShort'),
+  ],
+),
       ),
     );
   }
