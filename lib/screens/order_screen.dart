@@ -58,59 +58,80 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void filterOrders(String keyword) {
-    keyword = keyword.toLowerCase().trim();
+  final normalizedQuery = _normalizeSearchText(keyword);
 
-    filteredOrders = orders.where((order) {
-      final item = order as Map<String, dynamic>;
+  final keywords = normalizedQuery
+      .split(' ')
+      .where((word) => word.isNotEmpty)
+      .toList();
 
-      String searchText = "";
+  filteredOrders = orders.where((order) {
+    final item = Map<String, dynamic>.from(order);
 
-      if (widget.orderType == "E_OFFICE") {
-        searchText =
-            "${item["PO"]} "
-            "${item["WORK ORDER"]} "
-            "${item["PROJECT ID"]} "
-            "${item["E-NOTE"]} "
-            "${item["VENDOR"]}";
-      } else {
-        searchText =
-            "${item["PURCHASE ORDER"]} "
-            "${item["WORK ORDER"]} "
-            "${item["DTR SERIAL NO"]} "
-            "${item["DTR CODE"]} "
-            "${item["VENDOR"]}";
+    String searchText;
+
+    if (widget.orderType == "E_OFFICE") {
+      searchText = [
+        item["PO"],
+        item["WORK ORDER"],
+        item["PROJECT ID"],
+        item["E-NOTE"],
+        item["APPLICATION NO"],
+        item["CTE NO"],
+        item["WORK"],
+        item["VENDOR"],
+      ].join(" ");
+    } else {
+      searchText = [
+        item["PURCHASE ORDER"],
+        item["WORK ORDER"],
+        item["PUR REQ"],
+        item["DTR SERIAL NO"],
+        item["DTR CODE"],
+        item["VENDOR"],
+        item["MAT REQ."],
+        item["RETURN RESERVATION"],
+        item["DESCRIPTION"],
+      ].join(" ");
+    }
+
+    final normalizedSearch =
+        _normalizeSearchText(searchText);
+
+    final searchMatch = keywords.isEmpty ||
+        keywords.every(
+          (keyword) =>
+              normalizedSearch.contains(keyword),
+        );
+
+    bool statusMatch = true;
+
+    if (widget.orderType == "E_OFFICE" &&
+        selectedStatus != "All") {
+      final po =
+          (item["PO"] ?? "").toString().trim();
+
+      final isCompleted = po.isNotEmpty;
+
+      if (selectedStatus == "Completed") {
+        statusMatch = isCompleted;
+      } else if (selectedStatus == "Pending") {
+        statusMatch = !isCompleted;
       }
+    }
 
-      final searchMatch =
-          keyword.isEmpty ||
-          searchText.toLowerCase().contains(keyword);
+    return searchMatch && statusMatch;
+  }).toList();
 
-      bool statusMatch = true;
-
-     if (widget.orderType == "E_OFFICE" &&
-    selectedStatus != "All") {
-
-  final po =
-      (item["PO"] ?? "")
-          .toString()
-          .trim();
-
-  final isCompleted = po.isNotEmpty;
-
-  if (selectedStatus == "Completed") {
-    statusMatch = isCompleted;
-  }
-
-  if (selectedStatus == "Pending") {
-    statusMatch = !isCompleted;
-  }
+  setState(() {});
 }
-
-      return searchMatch && statusMatch;
-    }).toList();
-
-    setState(() {});
-  }
+String _normalizeSearchText(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
 
   Future<void> loadOrders() async {
       setState(() {
@@ -217,178 +238,288 @@ Map<String, List<Map<String, dynamic>>> groupOrdersByPO() {
   }
 
   Widget _buildBody() {
-    if (isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+  if (isLoading) {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
 
-    if (errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text(
-            errorMessage!,
-            style: const TextStyle(
-              color: Colors.red,
-              fontSize: 16,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
-    if (filteredOrders.isEmpty) {
-      return const Center(
+  if (errorMessage != null) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Text(
-          "No orders found",
-          style: TextStyle(fontSize: 16),
+          errorMessage!,
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 16,
+          ),
+          textAlign: TextAlign.center,
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return Column(
-      children: [
+  return Column(
+    children: [
+      // ---------------------------------------------
+      // SEARCH
+      // ---------------------------------------------
 
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: TextField(
-            controller: searchController,
-            onChanged: filterOrders,
-            decoration: InputDecoration(
-              hintText: "Search Orders...",
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: searchController.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        searchController.clear();
-                        filterOrders("");
-                      },
-                    ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(
+          12,
+          12,
+          12,
+          8,
+        ),
+        child: TextField(
+          controller: searchController,
+          onChanged: filterOrders,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText:
+                widget.orderType == "E_OFFICE"
+                    ? "Search PO, E-Note, vendor, work..."
+                    : "Search PO, work order, vendor, DTR...",
+            prefixIcon: const Icon(
+              Icons.search,
+            ),
+            suffixIcon:
+                searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(
+                          Icons.clear,
+                        ),
+                        onPressed: () {
+                          searchController.clear();
+                          filterOrders("");
+                        },
+                      ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: Colors.purple.shade100,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius:
+                  BorderRadius.circular(16),
+              borderSide: const BorderSide(
+                color: Color(0xFF5E2CA5),
+                width: 1.5,
               ),
             ),
           ),
         ),
+      ),
 
-        if (widget.orderType == "E_OFFICE")
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
+      // ---------------------------------------------
+      // E-OFFICE STATUS FILTER
+      // ---------------------------------------------
 
-                const Text(
-                  "Status",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+      if (widget.orderType == "E_OFFICE")
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+          ),
+          child: Row(
+            children: [
+              const Text(
+                "Status",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
 
-                const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-                DropdownButton<String>(
-                  value: selectedStatus,
-                  items: const [
+              DropdownButton<String>(
+                value: selectedStatus,
+                items: const [
+                  DropdownMenuItem(
+                    value: "All",
+                    child: Text("All"),
+                  ),
+                  DropdownMenuItem(
+                    value: "Pending",
+                    child: Text("Pending"),
+                  ),
+                  DropdownMenuItem(
+                    value: "Completed",
+                    child: Text("Completed"),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
 
-                    DropdownMenuItem(
-                      value: "All",
-                      child: Text("All"),
+                  setState(() {
+                    selectedStatus = value;
+                  });
+
+                  filterOrders(
+                    searchController.text,
+                  );
+                },
+              ),
+
+              const Spacer(),
+
+              Text(
+                "${filteredOrders.length} Orders",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+      const SizedBox(height: 8),
+
+      // ---------------------------------------------
+      // ORDER LIST
+      // ---------------------------------------------
+
+      Expanded(
+        child: RefreshIndicator(
+          onRefresh: loadOrders,
+          child: Builder(
+            builder: (context) {
+              if (filteredOrders.isEmpty) {
+                return ListView(
+                  physics:
+                      const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height:
+                          MediaQuery.of(context)
+                                  .size
+                                  .height *
+                              0.55,
+                      child: _buildNoResultsState(),
                     ),
-
-                    DropdownMenuItem(
-                      value: "Pending",
-                      child: Text("Pending"),
-                    ),
-
-                    DropdownMenuItem(
-                      value: "Completed",
-                      child: Text("Completed"),
-                    ),
-
                   ],
-                  onChanged: (value) {
-                    if (value == null) return;
+                );
+              }
 
-                    setState(() {
-                      selectedStatus = value;
-                    });
+              if (widget.orderType == "E_OFFICE") {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: filteredOrders.length,
+                  itemBuilder: (
+                    context,
+                    index,
+                  ) {
+                    final order =
+                        filteredOrders[index]
+                            as Map<String, dynamic>;
 
-                    filterOrders(searchController.text);
+                    return _buildEOfficeCard(
+                      order: order,
+                      orderNumber: index + 1,
+                    );
                   },
-                ),
+                );
+              }
 
-                const Spacer(),
+              final groupedOrders =
+                  groupOrdersByPO();
 
-                Text(
-                  "${filteredOrders.length} Orders",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: groupedOrders.length,
+                itemBuilder: (
+                  context,
+                  index,
+                ) {
+                  final po =
+                      groupedOrders.keys
+                          .elementAt(index);
 
-              ],
+                  final workOrders =
+                      groupedOrders[po]!;
+
+                  return _buildPurchaseOrderCard(
+                    po: po,
+                    workOrders: workOrders,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    ],
+  );
+}
+Widget _buildNoResultsState() {
+  final searchText =
+      searchController.text.trim();
+
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(30),
+      child: Column(
+        mainAxisAlignment:
+            MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+
+          const SizedBox(height: 16),
+
+          const Text(
+            "No orders found",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
           ),
 
-        const SizedBox(height: 8),
-Expanded(
-  child: RefreshIndicator(
-    onRefresh: loadOrders,
-    child: Builder(
-      builder: (context) {
+          const SizedBox(height: 8),
 
-       if (widget.orderType == "E_OFFICE") {
-  return ListView.builder(
-    padding: const EdgeInsets.all(12),
-    itemCount: filteredOrders.length,
-    itemBuilder: (context, index) {
-      final order =
-          filteredOrders[index]
-              as Map<String, dynamic>;
+          Text(
+            searchText.isEmpty
+                ? "There are no orders to display."
+                : 'No order matches "$searchText".',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+            ),
+          ),
 
-      return _buildEOfficeCard(
-        order: order,
-        orderNumber: index + 1,
-      );
-    },
-  );
-}else {
+          if (searchText.isNotEmpty) ...[
+            const SizedBox(height: 18),
 
-  final groupedOrders =
-      groupOrdersByPO();
-
-  return ListView.builder(
-    padding: const EdgeInsets.all(12),
-    itemCount: groupedOrders.length,
-    itemBuilder: (context, index) {
-
-      final po =
-          groupedOrders.keys
-              .elementAt(index);
-
-      final workOrders =
-          groupedOrders[po]!;
-
-      return _buildPurchaseOrderCard(
-        po: po,
-        workOrders: workOrders,
-      );
-    },
-  );
-}
-}
+            OutlinedButton.icon(
+              onPressed: () {
+                searchController.clear();
+                filterOrders("");
+              },
+              icon: const Icon(Icons.clear),
+              label: const Text(
+                "Clear Search",
+              ),
+            ),
+          ],
+        ],
+      ),
     ),
-
-         ),
-        ),
-
-      ],
-    );
-  }
+  );
+}
 
   Widget _buildOrderCard({
   required Map<String, dynamic> order,

@@ -1,25 +1,26 @@
-import '../utils/app_colors.dart';
 import 'package:flutter/material.dart';
 
-import 'order_screen.dart';
-import 'all_documents_screen.dart';
-import 'login_screen.dart';
-import 'admin_control_screen.dart';
+import '../utils/app_colors.dart';
+import 'vendor_management_screen.dart';
+import 'pending_devices_screen.dart';
+import 'audit_log_screen.dart';
+import 'support_screen.dart';
+import 'admin_support_screen.dart';
+import 'password_reset_requests_screen.dart';
+import 'create_notification_screen.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminControlScreen extends StatelessWidget {
   final String userId;
-  final String role;
 
-  const AdminDashboardScreen({
+  const AdminControlScreen({
     super.key,
     required this.userId,
-    required this.role,
   });
 
   static const Color purple = Color(0xFF5E2CA5);
   static const Color darkPurple = Color(0xFF4B168C);
-  static const Color lightPurple = Color(0xFFF4EEFF);
   static const Color pageBackground = Color(0xFFF9F7FC);
+  static const Color lightPurple = Color(0xFFF4EEFF);
 
   @override
   Widget build(BuildContext context) {
@@ -31,61 +32,11 @@ class AdminDashboardScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: darkPurple,
         title: const Text(
-          "Admin Dashboard",
+          "Admin Control",
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: () async {
-              final shouldLogout = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  title: const Text("Logout"),
-                  content: const Text(
-                    "Are you sure you want to logout?",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context, false);
-                      },
-                      child: const Text("Cancel"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: purple,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context, true);
-                      },
-                      child: const Text("Logout"),
-                    ),
-                  ],
-                ),
-              );
-
-              if (shouldLogout != true || !context.mounted) {
-                return;
-              }
-
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const LoginScreen(),
-                ),
-                (route) => false,
-              );
-            },
-          ),
-        ],
       ),
 
       body: SafeArea(
@@ -99,9 +50,9 @@ class AdminDashboardScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --------------------------------------------------
-              // WELCOME CARD
-              // --------------------------------------------------
+              // -----------------------------------------------
+              // HEADER
+              // -----------------------------------------------
 
               Container(
                 width: double.infinity,
@@ -118,7 +69,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(26),
                   boxShadow: [
                     BoxShadow(
-                      color: purple.withOpacity(0.22),
+                      color: purple.withOpacity(0.20),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),
@@ -142,37 +93,25 @@ class AdminDashboardScreen extends StatelessWidget {
 
                     const SizedBox(width: 16),
 
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment:
                             CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Welcome, Admin",
+                          Text(
+                            "Admin Control",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
-                          const SizedBox(height: 6),
-
+                          SizedBox(height: 5),
                           Text(
-                            "User ID: $userId",
-                            style: const TextStyle(
+                            "Manage users, devices, support and system activities",
+                            style: TextStyle(
                               color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-
-                          const SizedBox(height: 2),
-
-                          Text(
-                            "Role: $role",
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
+                              fontSize: 13.5,
                             ),
                           ),
                         ],
@@ -185,7 +124,7 @@ class AdminDashboardScreen extends StatelessWidget {
               const SizedBox(height: 28),
 
               const Text(
-                "Quick Access",
+                "Administration",
                 style: TextStyle(
                   fontSize: 23,
                   fontWeight: FontWeight.bold,
@@ -196,34 +135,36 @@ class AdminDashboardScreen extends StatelessWidget {
               const SizedBox(height: 6),
 
               Text(
-                "Manage orders, documents and administration",
+                "Select an area to manage",
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
                 ),
               ),
 
+
+
               const SizedBox(height: 20),
 
-              // --------------------------------------------------
-              // DTR PO + E-OFFICE
-              // --------------------------------------------------
+              // -----------------------------------------------
+              // VENDORS + PENDING DEVICES
+              // -----------------------------------------------
 
               Row(
                 children: [
                   Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.shopping_cart,
-                      title: "DTR PO",
-                      subtitle: "DTR purchase orders",
-                      color: const Color(0xFF6C35B8),
+                    child: _controlCard(
+                      icon: Icons.business,
+                      title: "Vendors",
+                      subtitle: "Manage vendor accounts",
+                      color: const Color(0xFF8A4BC4),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => OrdersScreen(
+                            builder: (_) =>
+                                VendorManagementScreen(
                               userId: userId,
-                              orderType: "DTR_PO",
                             ),
                           ),
                         );
@@ -234,18 +175,18 @@ class AdminDashboardScreen extends StatelessWidget {
                   const SizedBox(width: 14),
 
                   Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.assignment,
-                      title: "E-Office Orders",
-                      subtitle: "E-Office purchase orders",
-                      color: const Color(0xFF8A4BC4),
+                    child: _controlCard(
+                      icon: Icons.phonelink_lock,
+                      title: "Pending Devices",
+                      subtitle: "Approve registered devices",
+                      color: const Color(0xFFB04489),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => OrdersScreen(
-                              userId: userId,
-                              orderType: "E_OFFICE",
+                            builder: (_) =>
+                                PendingDevicesScreen(
+                              adminUserId: userId,
                             ),
                           ),
                         );
@@ -257,55 +198,138 @@ class AdminDashboardScreen extends StatelessWidget {
 
               const SizedBox(height: 14),
 
-              // --------------------------------------------------
-              // ADMIN CONTROL + DOCUMENTS
-              // --------------------------------------------------
+              // -----------------------------------------------
+// NOTIFICATIONS + PASSWORD RESET
+// -----------------------------------------------
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.admin_panel_settings,
-                      title: "Admin Control",
-                      subtitle: "Users, devices & support",
-                      color: const Color(0xFF5E2CA5),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AdminControlScreen(
-                              userId: userId,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(width: 14),
-
-                  Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.folder_rounded,
-                      title: "Documents",
-                      subtitle: "Documents & files",
-                      color: const Color(0xFF7437A8),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AllDocumentsScreen(
-                              userId: userId,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+Row(
+  children: [
+    Expanded(
+      child: _controlCard(
+        icon: Icons.notifications_active,
+        title: "Notifications",
+        subtitle: "Send a message to all users",
+        color: const Color(0xFF5E2CA5),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  CreateNotificationScreen(
+                adminUserId: userId,
               ),
+            ),
+          );
+        },
+      ),
+    ),
+
+    const SizedBox(width: 14),
+
+    Expanded(
+      child: _controlCard(
+        icon: Icons.lock_reset,
+        title: "Password Reset",
+        subtitle: "View reset requests",
+        color: const Color(0xFF7B3FC6),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  PasswordResetRequestsScreen(
+                adminUserId: userId,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+),
+
+              const SizedBox(height: 14),
+
+             // -----------------------------------------------
+// AUDIT LOG + SUPPORT & HELP
+// -----------------------------------------------
+
+Row(
+  children: [
+    Expanded(
+      child: _controlCard(
+        icon: Icons.history,
+        title: "Audit Log",
+        subtitle: "Review system activity",
+        color: const Color(0xFF6D3BB2),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  AuditLogScreen(
+                userId: userId,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+
+    const SizedBox(width: 14),
+
+    Expanded(
+      child: _controlCard(
+        icon: Icons.support_agent,
+        title: "Support & Help",
+        subtitle: "Help resources",
+        color: const Color(0xFF7B3FC6),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  SupportScreen(
+                userId: userId,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+),
+const SizedBox(height: 14),
+
+Row(
+  children: [
+    Expanded(
+      child: _controlCard(
+        icon: Icons.confirmation_number,
+        title: "Support Issues",
+        subtitle: "Manage support requests",
+        color: const Color(0xFF5C4AB5),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  AdminSupportScreen(
+                userId: userId,
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+
+    const SizedBox(width: 14),
+
+    Expanded(
+      child: const SizedBox(),
+    ),
+  ],
+),
             ],
           ),
         ),
@@ -313,7 +337,7 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _dashboardCard({
+  Widget _controlCard({
     required IconData icon,
     required String title,
     required String subtitle,
@@ -326,7 +350,7 @@ class AdminDashboardScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         onTap: onTap,
         child: Container(
-          height: 195,
+          height: 190,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,

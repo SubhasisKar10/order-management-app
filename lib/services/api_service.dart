@@ -53,6 +53,30 @@ Future<Map<String, dynamic>> getOrders({
   return jsonDecode(response.body)
       as Map<String, dynamic>;
 }
+Future<Map<String, dynamic>> checkAppUpdate({
+  required int currentBuild,
+}) async {
+  final uri = Uri.parse(AppConstants.apiUrl).replace(
+    queryParameters: {
+      'action': 'checkAppUpdate',
+      'buildNumber': currentBuild.toString(),
+    },
+  );
+
+  final response = await http.get(uri);
+
+  print("APP UPDATE STATUS: ${response.statusCode}");
+  print("APP UPDATE RESPONSE: ${response.body}");
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Server error: ${response.statusCode}',
+    );
+  }
+
+  return jsonDecode(response.body)
+      as Map<String, dynamic>;
+}
 Future<Map<String, dynamic>> getDocuments({
   required String userId,
   required String purchaseOrder,
@@ -408,6 +432,69 @@ Future<Map<String, dynamic>> getAuditLogs({
 
   return jsonDecode(response.body);
 }
+Future<Map<String, dynamic>> requestPasswordReset({
+  required String userId,
+}) async {
+
+  final uri = Uri.parse(AppConstants.apiUrl).replace(
+    queryParameters: {
+      "action": "requestPasswordReset",
+      "userId": userId,
+    },
+  );
+
+  final response = await http.get(uri);
+
+  print(
+    "PASSWORD RESET REQUEST STATUS: "
+    "${response.statusCode}",
+  );
+
+  print(
+    "PASSWORD RESET REQUEST RESPONSE: "
+    "${response.body}",
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      "Server error: ${response.statusCode}",
+    );
+  }
+
+  return jsonDecode(response.body)
+      as Map<String, dynamic>;
+}
+Future<Map<String, dynamic>> getPasswordResetRequests({
+  required String adminUserId,
+}) async {
+  final uri = Uri.parse(AppConstants.apiUrl).replace(
+    queryParameters: {
+      "action": "getPasswordResetRequests",
+      "userId": adminUserId,
+    },
+  );
+
+  final response = await http.get(uri);
+
+  print(
+    "PASSWORD RESET REQUESTS STATUS: "
+    "${response.statusCode}",
+  );
+
+  print(
+    "PASSWORD RESET REQUESTS RESPONSE: "
+    "${response.body}",
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      "Server Error ${response.statusCode}",
+    );
+  }
+
+  return jsonDecode(response.body)
+      as Map<String, dynamic>;
+}
 Future<Map<String, dynamic>> getOrderDocuments({
   required String userId,
   required String purchaseOrder,
@@ -626,6 +713,76 @@ Future<Map<String, dynamic>> markNotificationRead({
   if (response.statusCode != 200) {
     throw Exception(
       'Server error: ${response.statusCode}',
+    );
+  }
+
+  return jsonDecode(response.body)
+      as Map<String, dynamic>;
+}
+Future<Map<String, dynamic>> createSupportTicket({
+  required String userId,
+  required String category,
+  required String description,
+}) async {
+  final uri = Uri.parse(AppConstants.apiUrl).replace(
+    queryParameters: {
+      "action": "createSupportTicket",
+      "userId": userId,
+      "category": category,
+      "description": description,
+    },
+  );
+
+  final response = await http.get(uri);
+
+  print(
+    "CREATE SUPPORT TICKET STATUS: "
+    "${response.statusCode}",
+  );
+
+  print(
+    "CREATE SUPPORT TICKET RESPONSE: "
+    "${response.body}",
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      "Server Error ${response.statusCode}",
+    );
+  }
+
+  return jsonDecode(response.body)
+      as Map<String, dynamic>;
+}
+Future<Map<String, dynamic>> sendAdminNotification({
+  required String adminUserId,
+  required String title,
+  required String message,
+}) async {
+  final uri = Uri.parse(AppConstants.apiUrl).replace(
+    queryParameters: {
+      "action": "sendAdminNotification",
+      "userId": adminUserId,
+      "title": title,
+      "message": message,
+    },
+  );
+
+  final response = await http.get(uri);
+
+  print(
+    "SEND ADMIN NOTIFICATION STATUS: "
+    "${response.statusCode}",
+  );
+
+  print(
+    "SEND ADMIN NOTIFICATION RESPONSE: "
+    "${response.body}",
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      "Server Error ${response.statusCode}",
     );
   }
 

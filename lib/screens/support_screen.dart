@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'my_support_issues_screen.dart';
+import 'create_support_ticket_screen.dart';
 
 class SupportScreen extends StatefulWidget {
   final String userId;
@@ -150,24 +151,28 @@ class _SupportScreenState extends State<SupportScreen> {
           const SizedBox(height: 14),
 
           _supportCard(
-            context,
-            icon: Icons.confirmation_number,
-            title: 'Admin Support',
-            description:
-                'Raise an issue when the problem cannot '
-                'be resolved through discussion.',
-            color: Colors.orange,
-            onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => MySupportIssuesScreen(
-        userId: widget.userId,
+  context,
+  icon: Icons.add_comment_outlined,
+  title: 'Raise New Issue',
+  description:
+      'Report a problem that requires administrator assistance.',
+  color: const Color(0xFF5E2CA5),
+  onTap: () async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            CreateSupportTicketScreen(
+          userId: widget.userId,
+        ),
       ),
-    ),
-  );
-},
-          ),
+    );
+
+    if (result == true && mounted) {
+      await loadMySupportIssues();
+    }
+  },
+),
 
           const SizedBox(height: 14),
 
