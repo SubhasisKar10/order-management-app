@@ -205,61 +205,85 @@ class AdminDashboardScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // --------------------------------------------------
-              // DTR PO + E-OFFICE
-              // --------------------------------------------------
+             // --------------------------------------------------
+// DTR PO + E-OFFICE
+// --------------------------------------------------
 
-              Row(
-                children: [
-                  Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.shopping_cart,
-                      title: "DTR PO",
-                      subtitle: "DTR purchase orders",
-                      color: const Color(0xFF6C35B8),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrdersScreen(
-                              userId: userId,
-                              orderType: "DTR_PO",
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(width: 14),
-
-                  Expanded(
-                    child: _dashboardCard(
-                      icon: Icons.assignment,
-                      title: "E-Office Orders",
-                      subtitle: "E-Office purchase orders",
-                      color: const Color(0xFF8A4BC4),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrdersScreen(
-                              userId: userId,
-                              orderType: "E_OFFICE",
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+Row(
+  children: [
+    Expanded(
+      child: _dashboardCard(
+        icon: Icons.shopping_cart,
+        title: "DTR PO",
+        subtitle: "DTR purchase orders",
+        color: const Color(0xFF6C35B8),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrdersScreen(
+                userId: userId,
+                orderType: "DTR_PO",
               ),
+            ),
+          );
+        },
+      ),
+    ),
 
-              const SizedBox(height: 14),
+    const SizedBox(width: 14),
 
-              // --------------------------------------------------
-              // ADMIN CONTROL + DOCUMENTS
-              // --------------------------------------------------
+    Expanded(
+      child: _dashboardCard(
+        icon: Icons.assignment,
+        title: "E-Office Orders",
+        subtitle: "E-Office purchase orders",
+        color: const Color(0xFF8A4BC4),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrdersScreen(
+                userId: userId,
+                orderType: "E_OFFICE",
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 14),
+
+// --------------------------------------------------
+// OTHER PO
+// --------------------------------------------------
+
+_dashboardCard(
+  icon: Icons.inventory_2_outlined,
+  title: "Other PO",
+  subtitle: "Other purchase orders",
+  color: const Color(0xFF5E2CA5),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrdersScreen(
+          userId: userId,
+          orderType: "OTHER_PO",
+        ),
+      ),
+    );
+  },
+),
+
+const SizedBox(height: 14),
+
+// --------------------------------------------------
+// ADMIN CONTROL + DOCUMENTS
+// --------------------------------------------------
 
               Row(
                 children: [

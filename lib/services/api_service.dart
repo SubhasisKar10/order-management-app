@@ -500,6 +500,7 @@ Future<Map<String, dynamic>> getOrderDocuments({
   required String purchaseOrder,
   required String materialReq,
   required String workOrder,
+  required String orderType,
 }) async {
 
   final uri = Uri.parse(AppConstants.apiUrl).replace(
@@ -509,6 +510,7 @@ Future<Map<String, dynamic>> getOrderDocuments({
       "purchaseOrder": purchaseOrder,
       "materialReq": materialReq,
       "workOrder": workOrder,
+      "orderType": orderType,
     },
   );
 

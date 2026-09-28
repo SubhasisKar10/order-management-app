@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'login_support_screen.dart';
 import 'dashboard_screen.dart';
@@ -19,9 +20,51 @@ class _LoginScreenState extends State<LoginScreen> {
   final _userController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final FlutterSecureStorage _secureStorage =
+    const FlutterSecureStorage();
+
   bool isLoading = false;
   bool _obscurePassword = true;
   bool _rememberMe = false;
+
+@override
+void initState() {
+  super.initState();
+  _loadSavedLogin();
+}
+
+Future<void> _loadSavedLogin() async {
+  try {
+    final rememberMe =
+        await _secureStorage.read(key: 'remember_me');
+
+    if (rememberMe != 'true') {
+      return;
+    }
+
+    final savedUserId =
+        await _secureStorage.read(key: 'user_id');
+
+    final savedPassword =
+        await _secureStorage.read(key: 'password');
+
+    if (!mounted) return;
+
+    setState(() {
+      _rememberMe = true;
+
+      if (savedUserId != null) {
+        _userController.text = savedUserId;
+      }
+
+      if (savedPassword != null) {
+        _passwordController.text = savedPassword;
+      }
+    });
+  } catch (e) {
+    debugPrint("Failed to load saved login: $e");
+  }
+}
 
   // ------------------------------------------------------------
   // LOGIN
@@ -106,7 +149,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
           return;
         }
+       // --------------------------------------------------------
+// REMEMBER ME
+// --------------------------------------------------------
 
+final passwordChanged =
+    (result["passwordChanged"] ?? "")
+        .toString()
+        .toUpperCase();
+
+if (_rememberMe && passwordChanged != "NO") {
+  await _secureStorage.write(
+    key: 'remember_me',
+    value: 'true',
+  );
+
+  await _secureStorage.write(
+    key: 'user_id',
+    value: _userController.text.trim(),
+  );
+
+  await _secureStorage.write(
+    key: 'password',
+    value: _passwordController.text,
+  );
+} else if (!_rememberMe) {
+  await _secureStorage.delete(
+    key: 'remember_me',
+  );
+
+  await _secureStorage.delete(
+    key: 'user_id',
+  );
+
+  await _secureStorage.delete(
+    key: 'password',
+  );
+}
         // --------------------------------------------------------
         // PASSWORD STATUS
         // --------------------------------------------------------
@@ -659,15 +738,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       children: [
                         Checkbox(
-                          value: _rememberMe,
-                          activeColor: purple,
-                          onChanged: (value) {
-                            setState(() {
-                              _rememberMe =
-                                  value ?? false;
-                            });
-                          },
-                        ),
+  value: _rememberMe,
+  activeColor: purple,
+  onChanged: (value) async {
+    final remember = value ?? false;
+
+    setState(() {
+      _rememberMe = remember;
+    });
+
+    if (!remember) {
+      await _secureStorage.delete(
+        key: 'remember_me',
+      );
+
+      await _secureStorage.delete(
+        key: 'user_id',
+      );
+
+      await _secureStorage.delete(
+        key: 'password',
+      );
+    }
+  },
+),
 
                         const Text(
                           "Remember me",
@@ -822,8 +916,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     // VERSION
                     // ------------------------------------------------
 
-                    const Text(
-                      "Version 1.0.1",
+                   const Text(
+                      "Version 1.0.3",
                       style: TextStyle(
                         color: Colors.black45,
                         fontSize: 13,

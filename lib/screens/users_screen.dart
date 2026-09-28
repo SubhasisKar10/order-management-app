@@ -219,8 +219,7 @@ return userId.contains(query) ||
   final active =
       user["Active"]?.toString() ?? "";
 
-  final email =
-      user["E-mail"]?.toString() ?? "";
+ final name = user["Name"]?.toString() ?? "";
 
   return Card(
 
@@ -252,7 +251,7 @@ return userId.contains(query) ||
 
             Text("Vendor : $vendor"),
             Text("Role : $role"),
-            Text(email),
+            Text("Name : $name"),
 
             const SizedBox(height: 6),
 

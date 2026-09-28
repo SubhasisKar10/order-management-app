@@ -8,6 +8,7 @@ class DocumentsScreen extends StatefulWidget {
   final String purchaseOrder;
   final String materialReq;
   final String workOrder;
+  final String orderType;
 
   const DocumentsScreen({
     super.key,
@@ -15,10 +16,12 @@ class DocumentsScreen extends StatefulWidget {
     required this.purchaseOrder,
     required this.materialReq,
     required this.workOrder,
+    required this.orderType,
   });
 
   @override
-  State<DocumentsScreen> createState() => _DocumentsScreenState();
+  State<DocumentsScreen> createState() =>
+      _DocumentsScreenState();
 }
 
 class _DocumentsScreenState extends State<DocumentsScreen> {
@@ -39,12 +42,13 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   Future<void> loadDocuments() async {
     try {
-      final result = await apiService.getOrderDocuments(
-        userId: widget.userId,
-        purchaseOrder: widget.purchaseOrder,
-        materialReq: widget.materialReq,
-        workOrder: widget.workOrder,
-      );
+     final result = await apiService.getOrderDocuments(
+  userId: widget.userId,
+  purchaseOrder: widget.purchaseOrder,
+  materialReq: widget.materialReq,
+  workOrder: widget.workOrder,
+  orderType: widget.orderType,
+);
 
       if (!mounted) return;
 
@@ -126,37 +130,39 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: loadDocuments,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildDocumentCard(
-            title: "Purchase Order",
-            subtitle: widget.purchaseOrder,
-            icon: Icons.shopping_cart,
-            document: purchaseOrderFile,
-          ),
-
-          const SizedBox(height: 14),
-
-          _buildDocumentCard(
-            title: "Material Requisition",
-            subtitle: widget.materialReq,
-            icon: Icons.assignment,
-            document: materialReqFile,
-          ),
-
-          const SizedBox(height: 14),
-
-          _buildDocumentCard(
-            title: "Return Intimation",
-            subtitle: widget.workOrder,
-            icon: Icons.assignment_return,
-            document: returnIntimationFile,
-          ),
-        ],
+  onRefresh: loadDocuments,
+  child: ListView(
+    padding: const EdgeInsets.all(16),
+    children: [
+      _buildDocumentCard(
+        title: "Purchase Order",
+        subtitle: widget.purchaseOrder,
+        icon: Icons.shopping_cart,
+        document: purchaseOrderFile,
       ),
-    );
+
+      if (widget.orderType != "OTHER_PO") ...[
+        const SizedBox(height: 14),
+
+        _buildDocumentCard(
+          title: "Material Requisition",
+          subtitle: widget.materialReq,
+          icon: Icons.assignment,
+          document: materialReqFile,
+        ),
+
+        const SizedBox(height: 14),
+
+        _buildDocumentCard(
+          title: "Return Intimation",
+          subtitle: widget.workOrder,
+          icon: Icons.assignment_return,
+          document: returnIntimationFile,
+        ),
+      ],
+    ],
+  ),
+);
   }
 
   Widget _buildDocumentCard({

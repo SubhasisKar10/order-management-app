@@ -1,4 +1,6 @@
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart';
+
 import 'api_service.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -18,6 +20,14 @@ class UpdateService {
 
     final result = await apiService.checkAppUpdate(
   currentBuild: currentBuild,
+);
+debugPrint(
+  "UPDATE DEBUG: "
+  "currentVersion=$currentVersion, "
+  "currentBuild=$currentBuild, "
+  "serverLatestVersion=${result["latestVersion"]}, "
+  "serverLatestBuild=${result["buildNumber"]}, "
+  "apkUrl=${result["apkUrl"]}",
 );
 
     if (result["success"] != true) {

@@ -71,29 +71,38 @@ class _OrdersScreenState extends State<OrdersScreen> {
     String searchText;
 
     if (widget.orderType == "E_OFFICE") {
-      searchText = [
-        item["PO"],
-        item["WORK ORDER"],
-        item["PROJECT ID"],
-        item["E-NOTE"],
-        item["APPLICATION NO"],
-        item["CTE NO"],
-        item["WORK"],
-        item["VENDOR"],
-      ].join(" ");
-    } else {
-      searchText = [
-        item["PURCHASE ORDER"],
-        item["WORK ORDER"],
-        item["PUR REQ"],
-        item["DTR SERIAL NO"],
-        item["DTR CODE"],
-        item["VENDOR"],
-        item["MAT REQ."],
-        item["RETURN RESERVATION"],
-        item["DESCRIPTION"],
-      ].join(" ");
-    }
+  searchText = [
+    item["PO"],
+    item["WORK ORDER"],
+    item["PROJECT ID"],
+    item["E-NOTE"],
+    item["APPLICATION NO"],
+    item["CTE NO"],
+    item["WORK"],
+    item["VENDOR"],
+  ].join(" ");
+
+} else if (widget.orderType == "OTHER_PO") {
+  searchText = [
+    item["DATE"],
+    item["WORK"],
+    item["PO"],
+    item["VENDOR"],
+  ].join(" ");
+
+} else {
+  searchText = [
+    item["PURCHASE ORDER"],
+    item["WORK ORDER"],
+    item["PUR REQ"],
+    item["DTR SERIAL NO"],
+    item["DTR CODE"],
+    item["VENDOR"],
+    item["MAT REQ."],
+    item["RETURN RESERVATION"],
+    item["DESCRIPTION"],
+  ].join(" ");
+}
 
     final normalizedSearch =
         _normalizeSearchText(searchText);
@@ -148,7 +157,8 @@ String _normalizeSearchText(String value) {
       if (result["success"] == true) {
         orders = List.from(result["orders"] ?? []);
 
-       if (widget.orderType == "E_OFFICE") {
+      if (widget.orderType == "E_OFFICE") {
+
   orders.sort((a, b) {
     final eOfficeA =
         int.tryParse(
@@ -162,10 +172,38 @@ String _normalizeSearchText(String value) {
 
     return eOfficeB.compareTo(eOfficeA);
   });
-}else {
+
+} else if (widget.orderType == "OTHER_PO") {
 
   orders.sort((a, b) {
+    final dateA =
+        DateTime.tryParse(
+          a["DATE"]?.toString() ?? "",
+        );
 
+    final dateB =
+        DateTime.tryParse(
+          b["DATE"]?.toString() ?? "",
+        );
+
+    if (dateA == null && dateB == null) {
+      return 0;
+    }
+
+    if (dateA == null) {
+      return 1;
+    }
+
+    if (dateB == null) {
+      return -1;
+    }
+
+    return dateB.compareTo(dateA);
+  });
+
+} else {
+
+  orders.sort((a, b) {
     final poA =
         int.tryParse(
           a["PURCHASE ORDER"]?.toString() ?? "",
@@ -226,11 +264,13 @@ Map<String, List<Map<String, dynamic>>> groupOrdersByPO() {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.orderType == "E_OFFICE"
-              ? "E-Office Orders"
-              : "DTR PO Orders",
-        ),
+       title: Text(
+  widget.orderType == "E_OFFICE"
+      ? "E-Office Orders"
+      : widget.orderType == "OTHER_PO"
+          ? "Other PO"
+          : "DTR PO Orders",
+),
       ),
 
       body: _buildBody(),
@@ -431,6 +471,22 @@ Map<String, List<Map<String, dynamic>>> groupOrdersByPO() {
                   },
                 );
               }
+if (widget.orderType == "OTHER_PO") {
+  return ListView.builder(
+    padding: const EdgeInsets.all(12),
+    itemCount: filteredOrders.length,
+    itemBuilder: (context, index) {
+      final order =
+          filteredOrders[index]
+              as Map<String, dynamic>;
+
+      return _buildOtherPOCard(
+        order: order,
+        orderNumber: index + 1,
+      );
+    },
+  );
+}
 
               final groupedOrders =
                   groupOrdersByPO();
@@ -566,16 +622,13 @@ Widget _buildNoResultsState() {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => DocumentsScreen(
-                    userId: widget.userId,
-                    purchaseOrder: purchaseOrder,
-                    materialReq:
-                        order["MAT REQ."]
-                            .toString(),
-                    workOrder:
-                        order["WORK ORDER"]
-                            .toString(),
-                  ),
+                  builder: (_) =>DocumentsScreen(
+  	userId: widget.userId,
+ 	 purchaseOrder: purchaseOrder,
+  	materialReq: order["MAT REQ."].toString(),
+  	workOrder: order["WORK ORDER"].toString(),
+  	orderType: "DTR_PO",
+	),
                 ),
               );
             },
@@ -893,6 +946,121 @@ Widget _buildEOfficeCard({
         _buildOrderCard(
           order: order,
           orderNumber: orderNumber,
+        ),
+      ],
+    ),
+  );
+}
+Widget _buildOtherPOCard({
+  required Map<String, dynamic> order,
+  required int orderNumber,
+}) {
+  final date =
+      formatDate(order["DATE"]);
+
+  final work =
+      order["WORK"]?.toString().trim() ?? "";
+
+  final po =
+      order["PO"]?.toString().trim() ?? "";
+
+  final vendor =
+      order["VENDOR"]?.toString().trim() ?? "";
+
+  return Card(
+    margin: const EdgeInsets.only(
+      bottom: 14,
+    ),
+    elevation: 3,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: ExpansionTile(
+      leading: const Icon(
+        Icons.inventory_2,
+        color: Colors.blue,
+      ),
+
+      title: Text(
+        po.isEmpty
+            ? "Other PO #$orderNumber"
+            : po,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+
+      subtitle: Text(
+        work.isEmpty
+            ? "No work description"
+            : work,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            16,
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              _orderField(
+                "Date",
+                date,
+              ),
+
+              _orderField(
+                "Work",
+                work,
+              ),
+
+              _orderField(
+                "PO",
+                po,
+              ),
+
+              _orderField(
+                "Vendor",
+                vendor,
+              ),
+
+              const SizedBox(height: 8),
+
+              if (po.isNotEmpty)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(
+                      Icons.folder_open,
+                    ),
+                    label: const Text(
+                      "VIEW DOCUMENTS",
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              DocumentsScreen(
+                            userId: widget.userId,
+                            purchaseOrder: po,
+                            materialReq: "",
+                            workOrder: "",
+                            orderType: "OTHER_PO",
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     ),

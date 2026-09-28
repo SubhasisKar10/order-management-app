@@ -325,28 +325,77 @@ class _DashboardScreenState
 
               const SizedBox(height: 20),
 
-              // ------------------------------------------
-              // DTR + E-OFFICE
-              // ------------------------------------------
+             // ------------------------------------------
+// DTR + E-OFFICE
+// ------------------------------------------
+
+Row(
+  children: [
+    Expanded(
+      child: _dashboardCard(
+        icon: Icons.shopping_cart_outlined,
+        title: "DTR PO Orders",
+        subtitle: "View DTR purchase orders",
+        color: const Color(0xFF6C35B8),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrdersScreen(
+               userId: widget.userId,
+                orderType: "DTR_PO",
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+
+    const SizedBox(width: 14),
+
+    Expanded(
+      child: _dashboardCard(
+        icon: Icons.assignment_outlined,
+        title: "E-Office Orders",
+        subtitle: "View E-Office orders",
+        color: const Color(0xFF8A4BC4),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrdersScreen(
+                userId: widget.userId,
+                orderType: "E_OFFICE",
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 14),
+
+// ------------------------------------------
+// OTHER PO + SUPPORT
+// ------------------------------------------
 
               Row(
                 children: [
                   Expanded(
                     child: _dashboardCard(
-                      icon: Icons.shopping_cart_outlined,
-                      title: "DTR PO Orders",
-                      subtitle:
-                          "View DTR purchase orders",
-                      color:
-                          const Color(0xFF6C35B8),
+                      icon: Icons.inventory_2_outlined,
+                      title: "Other PO",
+                      subtitle: "View other purchase orders",
+                      color: const Color(0xFF5E2CA5),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                OrdersScreen(
+                            builder: (_) => OrdersScreen(
                               userId: widget.userId,
-                              orderType: "DTR_PO",
+                              orderType: "OTHER_PO",
                             ),
                           ),
                         );
@@ -358,22 +407,16 @@ class _DashboardScreenState
 
                   Expanded(
                     child: _dashboardCard(
-                      icon: Icons
-                          .assignment_outlined,
-                      title: "E-Office Orders",
-                      subtitle:
-                          "View E-Office orders",
-                      color:
-                          const Color(0xFF8A4BC4),
+                      icon: Icons.support_agent_outlined,
+                      title: "Support & Help",
+                      subtitle: "Get help or contact support",
+                      color: const Color(0xFF5E2CA5),
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                OrdersScreen(
+                            builder: (_) => SupportScreen(
                               userId: widget.userId,
-                              orderType:
-                                  "E_OFFICE",
                             ),
                           ),
                         );
@@ -381,31 +424,6 @@ class _DashboardScreenState
                     ),
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 14),
-
-              // ------------------------------------------
-              // SUPPORT
-              // ------------------------------------------
-
-              _dashboardCard(
-                icon: Icons.support_agent_outlined,
-                title: "Support & Help",
-                subtitle:
-                    "Get help or contact support",
-                color: const Color(0xFF5E2CA5),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          SupportScreen(
-                        userId: widget.userId,
-                      ),
-                    ),
-                  );
-                },
               ),
             ],
           ),
